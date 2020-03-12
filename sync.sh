@@ -62,13 +62,15 @@ main(){
                 ;;
         esac
 
-        if [[ ! -d "${logdirs%%:*}" ]]; then mkdir -p "${logdirs%%:*}"; fi
-
         #Action
         dryrun=""
         if [[ $actionARG == *"dry" ]]; then
             dryrun="--dry-run"
+            logging=false
         fi
+
+        if [[ ! -d "${logdirs%%:*}" ]] && $logging; then mkdir -p "${logdirs%%:*}"; fi
+
         case $actionARG in
             "g"* )
                 get
