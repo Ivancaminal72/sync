@@ -1,6 +1,7 @@
 #!/bin/bash
 #WHY sync.sh? to do specific/reliable transfers when connection didn't allow for "fluid" X11 edition of remote files
 #WARN: Replicate modifications in excluded dirs (find . | egrep "*$excluded*" --color)
+#REQUIRES: "inotifywait" (sudo apt install inotify-tools)
 
 #Exit if error
 set -e
@@ -19,9 +20,8 @@ blacklist=(
 ".nfs*")
 
 
-maxsize="1G" #File size limit
 logging=true
-logdirs="$HOME/syncs/gpi:~/syncs" #(LOCAL:REMOTE)
+logdirs="$HOME/syncs/gpi:~/syncs" #Logging directories (LOCAL:REMOTE)
 
 main(){
     if [ "$1" != "" ] && [ "$2" != "" ]; then
@@ -32,7 +32,8 @@ main(){
         case $projectARG in
             "phd")
                 blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
-                blacklist+=("**/corelib/src/resources/DatabaseSchema.sql") #custom exclude
+                blacklist+=("**/corelib/src/resources/DatabaseSchema.sql")
+                blacklist+=("/opencv")
                 paths="$HOME/workspace/phd:~/workspace/phd" #paths to sync (LOCAL:REMOTE)
                 ;;
             "mth")
@@ -102,7 +103,7 @@ get(){
 
     #Get remotedir/folname
     echo -e "\n\n************* Geting gpi ${paths##*:} ****************\n"
-    rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} --max-size ${maxsize}\
+    rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
     icaminal@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
     echo -e "OK!  ${paths##*:}\n"
 
@@ -171,6 +172,10 @@ create_excludes(){
     do
         excludes+=(--exclude $f)
     done
+
+    if [[ ! -z $maxsize ]]; then
+      excludes+=(--max-size $maxsize);
+    fi
 }
 
 main "$@"
