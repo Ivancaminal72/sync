@@ -14,8 +14,8 @@ blacklist=(
 "build/"
 "bin/"
 "devel/"
-".pyc"
-".*.pyc"
+"*.pyc"
+"__pycache__"
 ".fuse*"
 ".nfs*")
 
