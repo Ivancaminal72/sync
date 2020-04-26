@@ -56,6 +56,13 @@ main(){
                 if [[ ! $actionARG =~ g.* ]]; then
                     echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
+            "rec")
+                paths="$HOME/gpi/reconstructions:~/reconstructions"
+                maxsize="1000M"
+                logging=false
+                if [[ ! $actionARG =~ g.* ]]; then
+                    echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
+                ;;
             *)
                 echo "ERROR: unknown project name: \"$projectARG\""
                 exit 1
@@ -104,10 +111,10 @@ get(){
     fi
 
     #Get remotedir/folname
-    echo -e "\n\n************* Geting gpi ${paths##*:} ****************\n"
+    echo -e "\n\n****************** Geting gpi ${paths##*:} ******************\n"
     rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
     icaminal@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
-    echo -e "OK!  ${paths##*:}\n"
+    if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; fi
 
     #LOG end
     if $logging; then
@@ -136,10 +143,10 @@ setloop(){
         fi
 
         #Set remotedir/folname
-        echo -e "\n\n---------------------- Set gpi ${paths##*:} ----------------------\n"
+        echo -e "\n\n------------------- Set gpi ${paths##*:} -------------------\n"
         rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
         ${paths%%:*}/ icaminal@calcula.tsc.upc.edu:${paths##*:}/
-        echo -e "OK!  ${paths##*:}\n"
+        if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; notify-send "$projectARG"; fi
 
         #LOG end
         if $logging; then
@@ -157,7 +164,7 @@ setloop(){
         if $1; then
             sleep 0.2
             #Trigger when an event occurs
-            if inotifywait -r -e create,delete,modify,move ${paths%%:*}/; then
+            if inotifywait -q -r -e create,delete,modify,move ${paths%%:*}/; then
                 continue
             else
                 exit 1
