@@ -56,8 +56,8 @@ main(){
                 if [[ ! $actionARG =~ g.* ]]; then
                     echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
-            "rec")
-                paths="$HOME/gpi/reconstructions:~/reconstructions"
+            "map")
+                paths="$HOME/gpi/mappings:~/mappings"
                 maxsize="1000M"
                 logging=false
                 if [[ ! $actionARG =~ g.* ]]; then
