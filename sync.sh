@@ -21,15 +21,36 @@ blacklist=(
 
 
 logging=true
-logdirs="$HOME/syncs/gpi:~/syncs" #Logging directories (LOCAL:REMOTE)
 
 main(){
-    if [ "$1" != "" ] && [ "$2" != "" ]; then
-        actionARG=`echo $1 | awk -F= '{print tolower($1)}'`
-        projectARG=`echo $2 | awk -F= '{print tolower($1)}'`
+    if [ "$1" != "" ] && [ "$2" != "" ] && [ "$3" != "" ]; then
+        hostARG=`echo $1 | awk -F= '{print tolower($1)}'`
+        actionARG=`echo $2 | awk -F= '{print tolower($1)}'`
+        projectARG=`echo $3 | awk -F= '{print tolower($1)}'`
+
+        #Host
+        case $hostARG in
+            "gpi")
+                host="gpi"
+                address="icaminal@calcula.tsc.upc.edu"
+                ;;
+            "cd6")
+                host="cd6"
+                address="icaminal@10.7.8.45"
+                ;;
+            *)
+                echo "ERROR: unknown host name: \"$hostARG\""
+                exit 1
+                ;;
+        esac
+
+        logdirs="$HOME/syncs/$host:~/syncs" #Logging directories (LOCAL:REMOTE)
 
         #Project
         case $projectARG in
+            "ros")
+                paths="$HOME/workspace/ros_ddd:~/workspace/ros_ddd"
+                ;;
             "phd")
                 blacklist+=("**/corelib/include/rtabmap/core/Version.h") #custom exclude
                 blacklist+=("**/corelib/src/resources/DatabaseSchema.sql")
@@ -44,20 +65,20 @@ main(){
                 paths="$HOME/workspace/doitforme:~/workspace/doitforme"
                 ;;
             "imp")
-                paths="$HOME/gpi/important:~/important"
+                paths="$HOME/$host/important:~/important"
                 logging=false
                 if [[ ! $actionARG =~ g.* ]]; then
                     echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
             "out")
-                paths="$HOME/gpi/outputs:~/outputs"
+                paths="$HOME/$host/outputs:~/outputs"
                 maxsize="1M"
                 logging=false
                 if [[ ! $actionARG =~ g.* ]]; then
                     echo "ERROR: \"${paths%%:*}\" can only be get!"; exit -1; fi
                 ;;
             "map")
-                paths="$HOME/gpi/mappings:~/mappings"
+                paths="$HOME/$host/mappings:~/mappings"
                 maxsize="1000M"
                 logging=false
                 if [[ ! $actionARG =~ g.* ]]; then
@@ -95,7 +116,7 @@ main(){
         esac
 
     else
-        echo "Usage: $0 action project"
+        echo "Usage: $0 host action project"
     fi
 }
 
@@ -105,15 +126,15 @@ get(){
 
     #LOG start
     if $logging; then
-        printf "gpi " >> ${logdirs%%:*}/$projectARG.txt
+        printf "$host " >> ${logdirs%%:*}/$projectARG.txt
         trap "printf ' Exit with error\n' >> ${logdirs%%:*}/$projectARG.txt" ERR #Log ERROR exits
         trap "printf ' Exit by USER\n' >> ${logdirs%%:*}/$projectARG.txt; trap - ERR" INT #Log USER exits (and reset ERR)
     fi
 
     #Get remotedir/folname
-    echo -e "\n\n****************** Geting gpi ${paths##*:} ******************\n"
+    echo -e "\n\n****************** Geting $host ${paths##*:} ******************\n"
     rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-    icaminal@calcula.tsc.upc.edu:${paths##*:}/ ${paths%%:*}/
+    ${address}:${paths##*:}/ ${paths%%:*}/
     if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; fi
 
     #LOG end
@@ -122,7 +143,7 @@ get(){
 
         #Upload logs to remote
         trap - INT ERR #reset signal handling to default
-        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
+        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ ${address}:${logdirs##*:}
         if (($? == 0)); then echo -e "syncs uploaded"; fi
     fi
 
@@ -143,18 +164,18 @@ setloop(){
         fi
 
         #Set remotedir/folname
-        echo -e "\n\n------------------- Set gpi ${paths##*:} -------------------\n"
+        echo -e "\n\n------------------- Set $host ${paths##*:} -------------------\n"
         rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
-        ${paths%%:*}/ icaminal@calcula.tsc.upc.edu:${paths##*:}/
+        ${paths%%:*}/ ${address}:${paths##*:}/
         if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; notify-send "$projectARG"; fi
 
         #LOG end
         if $logging; then
-            echo " --> gpi    "`date` >> ${logdirs%%:*}/$projectARG.txt
+            echo " --> $host    "`date` >> ${logdirs%%:*}/$projectARG.txt
 
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
-            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ icaminal@calcula.tsc.upc.edu:${logdirs##*:}
+            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ ${address}:${logdirs##*:}
             if (($? == 0)); then echo -e "syncs uploaded"; fi
         fi
 
