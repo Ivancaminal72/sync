@@ -21,6 +21,7 @@ blacklist=(
 
 
 logging=true
+port=22
 
 main(){
     if [ "$1" != "" ] && [ "$2" != "" ] && [ "$3" != "" ]; then
@@ -33,6 +34,7 @@ main(){
             "gpi")
                 host="gpi"
                 address="icaminal@calcula.tsc.upc.edu"
+                port=2225
                 ;;
             "cd6")
                 host="cd6"
@@ -133,7 +135,7 @@ get(){
 
     #Get remotedir/folname
     echo -e "\n\n****************** Geting $host ${paths##*:} ******************\n"
-    rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+    rsync -rltgoDv $dryrun --delete -e "ssh -p ${port}" --progress ${excludes[*]} \
     ${address}:${paths##*:}/ ${paths%%:*}/
     if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; fi
 
@@ -143,7 +145,7 @@ get(){
 
         #Upload logs to remote
         trap - INT ERR #reset signal handling to default
-        rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ ${address}:${logdirs##*:}
+        rsync -rltgoDq $dryrun --delete -e "ssh -p ${port}" ${logdirs%%:*}/ ${address}:${logdirs##*:}
         if (($? == 0)); then echo -e "syncs uploaded"; fi
     fi
 
@@ -165,9 +167,9 @@ setloop(){
 
         #Set remotedir/folname
         echo -e "\n\n------------------- Set $host ${paths##*:} -------------------\n"
-        rsync -rltgoDv $dryrun --delete -e 'ssh -p 2225' --progress ${excludes[*]} \
+        rsync -rltgoDv $dryrun --delete -e "ssh -p ${port}" --progress ${excludes[*]} \
         ${paths%%:*}/ ${address}:${paths##*:}/
-        if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; notify-send "$projectARG"; fi
+        if (($? == 0)); then echo -e "OK!  ${paths##*:}\n"; notify-send "$hostARG    $projectARG"; fi
 
         #LOG end
         if $logging; then
@@ -175,7 +177,7 @@ setloop(){
 
             #Upload logs to remote
             trap - INT ERR #reset signal handling to the default
-            rsync -rltgoDq $dryrun --delete -e 'ssh -p 2225' ${logdirs%%:*}/ ${address}:${logdirs##*:}
+            rsync -rltgoDq $dryrun --delete -e "ssh -p ${port}" ${logdirs%%:*}/ ${address}:${logdirs##*:}
             if (($? == 0)); then echo -e "syncs uploaded"; fi
         fi
 
